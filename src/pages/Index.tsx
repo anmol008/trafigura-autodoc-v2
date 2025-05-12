@@ -6,7 +6,7 @@ import Personas from '@/components/Personas';
 import SearchResults, { SearchResultItem } from '@/components/SearchResults';
 import FilterPane from '@/components/FilterPane';
 import { searchDocuments } from '@/services/api';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { DateRange } from 'react-day-picker';
 
 const Index = () => {
@@ -113,7 +113,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-trafigura-gray">
+    <div className="min-h-screen flex flex-col bg-trafigura-gray font-poppins">
       <Header />
       
       <main className="flex-1 flex">
@@ -135,9 +135,6 @@ const Index = () => {
                   alt="Trafigura" 
                   className="h-10 mx-auto mb-6" 
                 />
-                {/* <h1 className="text-3xl font-bold text-trafigura-dark-blue mb-2">
-                  Knowledge Nexus
-                </h1> */}
                 <p className="text-gray-600 max-w-md mx-auto">
                   Unified search across all Trafigura enterprise knowledge sources
                 </p>

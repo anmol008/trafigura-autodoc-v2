@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
 
 export interface SearchResultItem {
   id: string;
@@ -32,6 +33,7 @@ export interface SearchResultItem {
   fileSize?: string;
   author?: string;
   lastModified?: string;
+  pdfUrl?: string;
   calculations?: {
     type: string;
     value: string;
@@ -54,6 +56,8 @@ const getDocumentIcon = (type: string) => {
       return <FileText className="h-5 w-5 text-green-600" />;
     case 'report':
       return <FileClock className="h-5 w-5 text-amber-600" />;
+    case 'policy':
+      return <File className="h-5 w-5 text-red-600" />;
     default:
       return <File className="h-5 w-5 text-gray-600" />;
   }
@@ -79,11 +83,39 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     }));
   };
 
+  const handleDownload = (item: SearchResultItem) => {
+    if (item.pdfUrl) {
+      // In a real app, this would download the actual file
+      // For demo purposes, we'll just show a toast notification
+      toast({
+        title: "Download started",
+        description: `Downloading ${item.title}`,
+        duration: 3000,
+      });
+      
+      // Simulate file download by opening in a new tab
+      window.open(item.pdfUrl, '_blank');
+    }
+  };
+
+  const handleOpenDocument = (item: SearchResultItem) => {
+    if (item.pdfUrl) {
+      window.open(item.pdfUrl, '_blank');
+    } else {
+      toast({
+        title: "Document unavailable",
+        description: "This document cannot be viewed at this time.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full max-w-3xl mx-auto mt-8 p-8 text-center">
         <div className="animate-pulse flex flex-col space-y-4">
-          {[1, 2, 3, 4, 5].map(i => (
+          {[1, 2, 3, 4].map(i => (
             <div key={i} className="h-24 bg-gray-100 rounded-lg"></div>
           ))}
         </div>
@@ -107,14 +139,14 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto mt-6">
+    <div className="w-full max-w-3xl mx-auto mt-6 font-poppins">
       <p className="text-sm text-gray-500 mb-4">{results.length} results found {query && `for "${query}"`}</p>
       
       <div className="space-y-4">
         {results.map((result) => (
           <div 
             key={result.id} 
-            className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 animate-fade-in"
+            className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 animate-fade-in bg-white"
           >
             <div className="flex items-start gap-3">
               <div>
@@ -171,14 +203,20 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="text-xs">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        onClick={() => handleDownload(result)}
+                      >
                         <Download className="h-3 w-3 mr-1" /> 
                         Download
                       </Button>
                       
                       <Button 
                         size="sm" 
-                        className="text-xs bg-trafigura-dark-blue hover:bg-trafigura-dark-blue/90"
+                        className="text-xs bg-trafigura-dark-blue hover:bg-trafigura-dark-blue/90 rounded-full"
+                        onClick={() => handleOpenDocument(result)}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         Open
@@ -186,7 +224,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                     </div>
                     
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="p-0 h-8 px-2">
+                      <Button variant="ghost" size="sm" className="p-0 h-8 px-2 hover:bg-blue-50 hover:text-blue-600">
                         <span className="mr-1 text-xs">
                           {expandedItems[result.id] ? 'Hide details' : 'Show details'}
                         </span>
