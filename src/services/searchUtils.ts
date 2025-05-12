@@ -1,4 +1,3 @@
-
 import { SearchResultItem } from '@/components/SearchResults';
 
 // Function to perform keyword-based search with improved relevance
@@ -14,8 +13,35 @@ export const performKeywordSearch = (
   const normalizedQuery = query.trim().toLowerCase();
   const queryTerms = normalizedQuery.split(/\s+/);
   
-  return items.filter(item => {
-    // Calculate relevance score for each item
+  // Filter items that match the query
+  const matchedItems = items.filter(item => {
+    // Check for matches in various fields
+    const titleMatches = item.title.toLowerCase().includes(normalizedQuery);
+    const typeMatches = item.type.toLowerCase().includes(normalizedQuery);
+    const excerptMatches = item.excerpt.toLowerCase().includes(normalizedQuery);
+    const departmentMatches = item.department.toLowerCase().includes(normalizedQuery);
+    const tagMatches = item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery));
+    const idMatch = item.id === normalizedQuery;
+    const contentMatch = item.contentPreview && item.contentPreview.toLowerCase().includes(normalizedQuery);
+    
+    // Check for individual term matches for multi-word queries
+    const termMatches = queryTerms.some(term => {
+      return (
+        item.title.toLowerCase().includes(term) ||
+        item.type.toLowerCase().includes(term) ||
+        item.department.toLowerCase().includes(term) ||
+        item.excerpt.toLowerCase().includes(term) ||
+        item.tags.some(tag => tag.toLowerCase().includes(term)) ||
+        (item.contentPreview && item.contentPreview.toLowerCase().includes(term))
+      );
+    });
+    
+    // Return true if any field matches
+    return titleMatches || typeMatches || excerptMatches || departmentMatches || tagMatches || idMatch || contentMatch || termMatches;
+  });
+  
+  // Calculate relevance score for sorting
+  const scoredItems = matchedItems.map(item => {
     let score = 0;
     
     // Check for exact matches in title (highest priority)
@@ -26,16 +52,18 @@ export const performKeywordSearch = (
     // Check for exact matches in type (high priority)
     if (item.type.toLowerCase() === normalizedQuery) {
       score += 8;
+    } else if (item.type.toLowerCase().includes(normalizedQuery)) {
+      score += 5;
     }
     
     // Check for exact matches in department (medium priority)
     if (item.department.toLowerCase().includes(normalizedQuery)) {
-      score += 5;
+      score += 4;
     }
     
     // Check for matches in tags (medium priority)
     if (item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery))) {
-      score += 5;
+      score += 4;
     }
     
     // Check for matches in excerpt (lower priority)
@@ -69,31 +97,13 @@ export const performKeywordSearch = (
       score += queryTerms.length;
     }
     
-    // Return true if the item has any relevance to the query
-    return score > 0;
-  }).sort((a, b) => {
-    // Sort by exact type matches first
-    if (a.type.toLowerCase() === normalizedQuery && b.type.toLowerCase() !== normalizedQuery) {
-      return -1;
-    }
-    if (a.type.toLowerCase() !== normalizedQuery && b.type.toLowerCase() === normalizedQuery) {
-      return 1;
-    }
-    
-    // Then sort by title relevance
-    const aTitle = a.title.toLowerCase();
-    const bTitle = b.title.toLowerCase();
-    
-    if (aTitle.includes(normalizedQuery) && !bTitle.includes(normalizedQuery)) {
-      return -1;
-    }
-    if (!aTitle.includes(normalizedQuery) && bTitle.includes(normalizedQuery)) {
-      return 1;
-    }
-    
-    // Finally sort by date (newest first)
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
+    return { item, score };
   });
+  
+  // Sort by score (highest first)
+  return scoredItems
+    .sort((a, b) => b.score - a.score)
+    .map(scoredItem => scoredItem.item);
 };
 
 // Function to generate a unique ID for documents
