@@ -19,8 +19,8 @@ const Index = () => {
   const { toast } = useToast();
   
   const [filters, setFilters] = useState({
-    documentType: [],
-    department: [],
+    documentType: '',  // Changed from [] to '' to match the API expectation
+    department: '',    // Changed from [] to '' to match the API expectation
     confidentiality: [],
     fileSize: [],
     dateRange: { from: undefined, to: undefined } as DateRange
@@ -28,17 +28,23 @@ const Index = () => {
 
   const handleSearch = async (query: string, searchFilters: any) => {
     try {
+      console.log('Search initiated with query:', query);
       setSearchQuery(query);
       setLoading(true);
+      
       // Combine sidebar filters with search bar filters
       const combinedFilters = {
-        ...searchFilters,
         ...filters,
-        documentType: searchFilters.documentType !== 'all' ? 
-          searchFilters.documentType : filters.documentType
+        ...searchFilters,
+        documentType: searchFilters.documentType || filters.documentType,
+        department: searchFilters.department || filters.department
       };
       
+      console.log('Combined filters:', combinedFilters);
+      
       const searchResults = await searchDocuments(query, combinedFilters, currentPersona);
+      console.log(`Search completed, found ${searchResults.length} results`);
+      
       setResults(searchResults);
       setSearchPerformed(true);
       setShowFilters(true);

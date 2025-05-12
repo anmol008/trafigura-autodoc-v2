@@ -204,14 +204,16 @@ export const searchDocuments = async (
     query,
     filters: {
       ...filters,
-      documentType: filters.documentType ? [filters.documentType] : [],
-      department: filters.department ? [filters.department] : [],
+      documentType: filters.documentType && filters.documentType !== 'all' ? [filters.documentType] : [],
+      department: filters.department && filters.department !== 'all' ? [filters.department] : [],
       confidentiality: [],
       fileSize: [],
       dateRange: filters.dateRange || { from: undefined, to: undefined }
     },
     persona
   };
+  
+  console.log('Processed search options:', searchOptions);
   
   // Simulate API delay
   await delay(800);
@@ -223,25 +225,30 @@ export const searchDocuments = async (
 const performSearch = (options: SearchOptions): SearchResultItem[] => {
   let results = [...mockResults];
   
+  console.log(`Starting search with ${results.length} items`);
+  
   // Apply keyword search with improved relevance
-  if (options.query) {
+  if (options.query && options.query.trim() !== '') {
     results = performKeywordSearch(results, options.query);
+    console.log(`After keyword search: ${results.length} results`);
   }
   
   // Filter by document type (if specific types are selected)
-  if (options.filters.documentType?.length > 0 && options.filters.documentType[0] !== 'all') {
+  if (options.filters.documentType?.length > 0) {
     results = results.filter(item => 
       options.filters.documentType.includes(item.type)
     );
+    console.log(`After document type filter: ${results.length} results`);
   }
   
   // Filter by department
-  if (options.filters.department?.length > 0 && options.filters.department[0] !== 'all') {
+  if (options.filters.department?.length > 0) {
     results = results.filter(item =>
       options.filters.department.some(dept => 
         item.department.toLowerCase() === dept.toLowerCase()
       )
     );
+    console.log(`After department filter: ${results.length} results`);
   }
   
   // Filter by confidentiality
@@ -255,6 +262,7 @@ const performSearch = (options: SearchOptions): SearchResultItem[] => {
       }
       return true;
     });
+    console.log(`After confidentiality filter: ${results.length} results`);
   }
   
   // Filter by file size
@@ -274,6 +282,7 @@ const performSearch = (options: SearchOptions): SearchResultItem[] => {
       }
       return false;
     });
+    console.log(`After file size filter: ${results.length} results`);
   }
   
   // Filter by date range
@@ -294,9 +303,10 @@ const performSearch = (options: SearchOptions): SearchResultItem[] => {
       
       return true;
     });
+    console.log(`After date range filter: ${results.length} results`);
   }
   
-  // Filter by persona
+  // Filter by persona (only if not 'all')
   if (options.persona !== 'all') {
     // Convert persona to department name format
     const personaToDeptMap: Record<string, string[]> = {
@@ -312,8 +322,10 @@ const performSearch = (options: SearchOptions): SearchResultItem[] => {
     const relevantDepartments = personaToDeptMap[options.persona] || [];
     if (relevantDepartments.length > 0) {
       results = results.filter(item => relevantDepartments.includes(item.department));
+      console.log(`After persona filter: ${results.length} results`);
     }
   }
   
+  console.log(`Final result count: ${results.length}`);
   return results;
 };

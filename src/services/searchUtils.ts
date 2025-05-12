@@ -1,3 +1,4 @@
+
 import { SearchResultItem } from '@/components/SearchResults';
 
 // Function to perform keyword-based search with improved relevance
@@ -6,63 +7,85 @@ export const performKeywordSearch = (
   query: string,
   fields: string[] = ['title', 'excerpt', 'tags', 'type']
 ): SearchResultItem[] => {
+  console.log(`Running keyword search with query: "${query}" on ${items.length} items`);
+  
   if (!query || query.trim() === '') {
+    console.log('Empty query, returning all items');
     return items;
   }
 
   const normalizedQuery = query.trim().toLowerCase();
   const queryTerms = normalizedQuery.split(/\s+/);
   
-  // Filter items that match the query
+  console.log(`Normalized query: "${normalizedQuery}", terms:`, queryTerms);
+  
+  // Filter items that match the query (using more lenient matching)
   const matchedItems = items.filter(item => {
     // Check for matches in various fields
-    const titleMatches = item.title.toLowerCase().includes(normalizedQuery);
-    const typeMatches = item.type.toLowerCase().includes(normalizedQuery);
-    const excerptMatches = item.excerpt.toLowerCase().includes(normalizedQuery);
-    const departmentMatches = item.department.toLowerCase().includes(normalizedQuery);
-    const tagMatches = item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery));
-    const idMatch = item.id === normalizedQuery;
+    const titleMatch = item.title.toLowerCase().includes(normalizedQuery);
+    const typeMatch = item.type.toLowerCase().includes(normalizedQuery);
+    const excerptMatch = item.excerpt.toLowerCase().includes(normalizedQuery);
+    const departmentMatch = item.department.toLowerCase().includes(normalizedQuery);
+    const tagMatch = item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery));
+    const idMatch = item.id.toLowerCase().includes(normalizedQuery);
     const contentMatch = item.contentPreview && item.contentPreview.toLowerCase().includes(normalizedQuery);
     
-    // Check for individual term matches for multi-word queries
-    const termMatches = queryTerms.some(term => {
+    // Check for individual term matches for multi-word queries (more lenient)
+    const termMatch = queryTerms.some(term => {
+      if (term.length < 3) return false; // Skip very short terms
+      
       return (
         item.title.toLowerCase().includes(term) ||
         item.type.toLowerCase().includes(term) ||
         item.department.toLowerCase().includes(term) ||
         item.excerpt.toLowerCase().includes(term) ||
         item.tags.some(tag => tag.toLowerCase().includes(term)) ||
+        item.id.toLowerCase().includes(term) ||
         (item.contentPreview && item.contentPreview.toLowerCase().includes(term))
       );
     });
     
+    const isMatch = titleMatch || typeMatch || excerptMatch || departmentMatch || tagMatch || idMatch || contentMatch || termMatch;
+    
+    if (isMatch) {
+      console.log(`Match found for item: ${item.id} - ${item.title}`);
+    }
+    
     // Return true if any field matches
-    return titleMatches || typeMatches || excerptMatches || departmentMatches || tagMatches || idMatch || contentMatch || termMatches;
+    return isMatch;
   });
+  
+  console.log(`Found ${matchedItems.length} matches out of ${items.length} items`);
   
   // Calculate relevance score for sorting
   const scoredItems = matchedItems.map(item => {
     let score = 0;
     
     // Check for exact matches in title (highest priority)
-    if (item.title.toLowerCase().includes(normalizedQuery)) {
+    if (item.title.toLowerCase() === normalizedQuery) {
+      score += 15;
+    } else if (item.title.toLowerCase().includes(normalizedQuery)) {
       score += 10;
     }
     
     // Check for exact matches in type (high priority)
     if (item.type.toLowerCase() === normalizedQuery) {
-      score += 8;
+      score += 12;
     } else if (item.type.toLowerCase().includes(normalizedQuery)) {
-      score += 5;
+      score += 8;
     }
     
     // Check for exact matches in department (medium priority)
-    if (item.department.toLowerCase().includes(normalizedQuery)) {
+    if (item.department.toLowerCase() === normalizedQuery) {
+      score += 6;
+    } else if (item.department.toLowerCase().includes(normalizedQuery)) {
       score += 4;
     }
     
     // Check for matches in tags (medium priority)
-    if (item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery))) {
+    if (item.tags.some(tag => tag.toLowerCase() === normalizedQuery)) {
+      score += 6;
+    } else if (item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery))) {
       score += 4;
     }
     
@@ -72,8 +95,10 @@ export const performKeywordSearch = (
     }
     
     // Check for ID-based search
-    if (item.id === normalizedQuery) {
-      score += 15; // Highest priority for ID matches
+    if (item.id.toLowerCase() === normalizedQuery) {
+      score += 20; // Highest priority for exact ID matches
+    } else if (item.id.toLowerCase().includes(normalizedQuery)) {
+      score += 15;
     }
     
     // Check for content preview matches if available
@@ -83,27 +108,34 @@ export const performKeywordSearch = (
     
     // For multi-word queries, check if all terms are present somewhere
     const allTermsPresent = queryTerms.every(term => {
+      if (term.length < 3) return true; // Skip very short terms for "all terms present" check
+      
       return (
         item.title.toLowerCase().includes(term) ||
         item.type.toLowerCase().includes(term) ||
         item.department.toLowerCase().includes(term) ||
         item.tags.some(tag => tag.toLowerCase().includes(term)) ||
         item.excerpt.toLowerCase().includes(term) ||
+        item.id.toLowerCase().includes(term) ||
         (item.contentPreview && item.contentPreview.toLowerCase().includes(term))
       );
     });
     
-    if (allTermsPresent) {
-      score += queryTerms.length;
+    if (allTermsPresent && queryTerms.length > 1) {
+      score += queryTerms.length * 2;
     }
     
+    console.log(`Item ${item.id} has score ${score}`);
     return { item, score };
   });
   
   // Sort by score (highest first)
-  return scoredItems
+  const sortedResults = scoredItems
     .sort((a, b) => b.score - a.score)
     .map(scoredItem => scoredItem.item);
+  
+  console.log(`Returning ${sortedResults.length} sorted results`);
+  return sortedResults;
 };
 
 // Function to generate a unique ID for documents
