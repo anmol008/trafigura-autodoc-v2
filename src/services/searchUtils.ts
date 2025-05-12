@@ -19,7 +19,23 @@ export const performKeywordSearch = (
   
   console.log(`Normalized query: "${normalizedQuery}", terms:`, queryTerms);
   
-  // Filter items that match the exact query term
+  // First, check if we need to do exact type matching (contract, agreement, etc.)
+  const documentTypes = ['contract', 'agreement', 'policy', 'report', 'research'];
+  const isDocumentTypeSearch = documentTypes.includes(normalizedQuery);
+  
+  if (isDocumentTypeSearch) {
+    console.log(`Document type search detected for: ${normalizedQuery}`);
+    
+    // Filter for exact type matches
+    const typeMatches = items.filter(item => 
+      item.type.toLowerCase() === normalizedQuery
+    );
+    
+    console.log(`Found ${typeMatches.length} exact type matches`);
+    return typeMatches;
+  }
+  
+  // For other searches, we use our regular matching logic
   const matchedItems = items.filter(item => {
     // Check for exact matches in various fields
     const titleMatch = item.title.toLowerCase().includes(normalizedQuery);
