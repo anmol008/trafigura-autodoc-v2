@@ -19,20 +19,20 @@ export const performKeywordSearch = (
   
   console.log(`Normalized query: "${normalizedQuery}", terms:`, queryTerms);
   
-  // Filter items that match the query (using more lenient matching)
+  // Filter items that match the exact query term
   const matchedItems = items.filter(item => {
-    // Check for matches in various fields
+    // Check for exact matches in various fields
     const titleMatch = item.title.toLowerCase().includes(normalizedQuery);
-    const typeMatch = item.type.toLowerCase().includes(normalizedQuery);
+    const typeMatch = item.type.toLowerCase() === normalizedQuery;
     const excerptMatch = item.excerpt.toLowerCase().includes(normalizedQuery);
-    const departmentMatch = item.department.toLowerCase().includes(normalizedQuery);
-    const tagMatch = item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery));
-    const idMatch = item.id.toLowerCase().includes(normalizedQuery);
+    const departmentMatch = item.department.toLowerCase() === normalizedQuery;
+    const tagMatch = item.tags.some(tag => tag.toLowerCase() === normalizedQuery);
+    const idMatch = item.id.toLowerCase() === normalizedQuery;
     const contentMatch = item.contentPreview && item.contentPreview.toLowerCase().includes(normalizedQuery);
     
-    // Check for individual term matches for multi-word queries (more lenient)
-    const termMatch = queryTerms.some(term => {
-      if (term.length < 3) return false; // Skip very short terms
+    // For multi-word queries, check if all terms match exactly
+    const allTermsMatch = queryTerms.length > 1 && queryTerms.every(term => {
+      if (term.length < 3) return true; // Skip very short terms
       
       return (
         item.title.toLowerCase().includes(term) ||
@@ -45,13 +45,13 @@ export const performKeywordSearch = (
       );
     });
     
-    const isMatch = titleMatch || typeMatch || excerptMatch || departmentMatch || tagMatch || idMatch || contentMatch || termMatch;
+    const isMatch = titleMatch || typeMatch || excerptMatch || departmentMatch || tagMatch || idMatch || contentMatch || allTermsMatch;
     
     if (isMatch) {
       console.log(`Match found for item: ${item.id} - ${item.title}`);
     }
     
-    // Return true if any field matches
+    // Return true if any field exactly matches the search term
     return isMatch;
   });
   
@@ -82,7 +82,7 @@ export const performKeywordSearch = (
       score += 4;
     }
     
-    // Check for matches in tags (medium priority)
+    // Check for exact matches in tags (medium priority)
     if (item.tags.some(tag => tag.toLowerCase() === normalizedQuery)) {
       score += 6;
     } else if (item.tags.some(tag => tag.toLowerCase().includes(normalizedQuery))) {

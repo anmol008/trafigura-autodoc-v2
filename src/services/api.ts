@@ -206,8 +206,8 @@ export const searchDocuments = async (
       ...filters,
       documentType: filters.documentType && filters.documentType !== 'all' ? [filters.documentType] : [],
       department: filters.department && filters.department !== 'all' ? [filters.department] : [],
-      confidentiality: [],
-      fileSize: [],
+      confidentiality: filters.confidentiality || [],
+      fileSize: filters.fileSize || [],
       dateRange: filters.dateRange || { from: undefined, to: undefined }
     },
     persona
@@ -227,7 +227,7 @@ const performSearch = (options: SearchOptions): SearchResultItem[] => {
   
   console.log(`Starting search with ${results.length} items`);
   
-  // Apply keyword search with improved relevance
+  // Apply keyword search with exact matching
   if (options.query && options.query.trim() !== '') {
     results = performKeywordSearch(results, options.query);
     console.log(`After keyword search: ${results.length} results`);
